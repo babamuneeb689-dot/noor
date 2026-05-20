@@ -8,829 +8,738 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    /* ─── RESET & BASE ─────────────────────────────────────── */
+    /* ─── RESET & VARIABLES ──────────────────────────────── */
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg:         #080808;
-      --dark:       #111111;
-      --card-bg:    #111111;
-      --gold:       #c9a96e;
-      --gold-light: #e8d5b0;
-      --gold-dark:  #a07840;
-      --cream:      #f0ebe0;
-      --gray:       #666666;
-      --lgray:      #aaaaaa;
-      --serif:      'Cormorant Garamond', serif;
-      --sans:       'Montserrat', sans-serif;
-      --ease:       cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      --bg:        #070707;
+      --dark:      #0f0f0f;
+      --card:      #0f0f0f;
+      --gold:      #c9a96e;
+      --glight:    #e8d5b0;
+      --gdark:     #a07840;
+      --cream:     #f0ebe0;
+      --gray:      #5a5a5a;
+      --lgray:     #999;
+      --serif:     'Cormorant Garamond', serif;
+      --sans:      'Montserrat', sans-serif;
+      --ease:      cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
-
     html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--cream); font-family: var(--sans); overflow-x: hidden; cursor: none; }
 
-    body {
-      background: var(--bg);
-      color: var(--cream);
-      font-family: var(--sans);
-      overflow-x: hidden;
-      cursor: none;
+    /* ─── SCROLL PROGRESS ────────────────────────────────── */
+    #progress-bar {
+      position: fixed; top: 0; left: 0; height: 2px;
+      background: linear-gradient(90deg, var(--gdark), var(--gold), var(--glight));
+      width: 0%; z-index: 10001;
+      transition: width 0.1s linear;
+      box-shadow: 0 0 8px rgba(201,169,110,0.5);
     }
 
-    /* ─── CUSTOM CURSOR ────────────────────────────────────── */
-    .cursor {
-      position: fixed;
-      width: 10px; height: 10px;
-      background: var(--gold);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 9999;
-      transform: translate(-50%, -50%);
-      transition: transform 0.1s;
+    /* ─── CURSOR ─────────────────────────────────────────── */
+    #cur-dot {
+      position: fixed; width: 9px; height: 9px;
+      background: var(--gold); border-radius: 50%;
+      pointer-events: none; z-index: 9999;
+      transform: translate(-50%,-50%);
     }
-    .cursor-ring {
-      position: fixed;
-      width: 38px; height: 38px;
-      border: 1px solid var(--gold);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 9998;
-      transform: translate(-50%, -50%);
-      transition: all 0.15s var(--ease);
-      opacity: 0.6;
+    #cur-ring {
+      position: fixed; width: 36px; height: 36px;
+      border: 1px solid var(--gold); border-radius: 50%;
+      pointer-events: none; z-index: 9998;
+      transform: translate(-50%,-50%);
+      transition: all 0.14s var(--ease); opacity: 0.55;
     }
-    .cursor-hover .cursor        { transform: translate(-50%,-50%) scale(2.2); background: var(--gold-light); }
-    .cursor-hover .cursor-ring   { transform: translate(-50%,-50%) scale(1.6); opacity: 1; }
-
-    /* ─── LOADER ───────────────────────────────────────────── */
-    #loader {
+    #trail-canvas {
       position: fixed; inset: 0;
-      background: var(--bg);
+      pointer-events: none; z-index: 9997;
+    }
+    body.hov #cur-dot  { transform: translate(-50%,-50%) scale(2.2); background: var(--glight); }
+    body.hov #cur-ring { transform: translate(-50%,-50%) scale(1.6); opacity: 1; }
+
+    /* ─── LOADER ─────────────────────────────────────────── */
+    #loader {
+      position: fixed; inset: 0; background: var(--bg);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      z-index: 10000;
-      transition: opacity 0.9s var(--ease), visibility 0.9s;
+      z-index: 10000; transition: opacity 0.9s var(--ease), visibility 0.9s;
     }
-    #loader.hidden { opacity: 0; visibility: hidden; }
+    #loader.off { opacity: 0; visibility: hidden; }
+    .l-letters { display: flex; gap: 0.2rem; }
+    .l-letter {
+      font-family: var(--serif); font-size: clamp(3rem, 10vw, 6.5rem);
+      font-weight: 300; color: var(--gold);
+      opacity: 0; transform: translateY(30px);
+      animation: lUp 0.7s var(--ease) both;
+    }
+    .l-letter:nth-child(1){animation-delay:0.2s}
+    .l-letter:nth-child(2){animation-delay:0.4s}
+    .l-letter:nth-child(3){animation-delay:0.55s}
+    .l-letter:nth-child(4){animation-delay:0.7s}
+    .l-tag {
+      font-size: 0.6rem; letter-spacing: 0.45em; text-transform: uppercase;
+      color: var(--lgray); margin-top: 0.6rem;
+      opacity: 0; animation: lUp 1s 1.1s var(--ease) both;
+    }
+    .l-track { width: 180px; height: 1px; background: #1e1e1e; margin-top: 3rem; overflow: hidden; }
+    .l-fill   { height: 100%; background: var(--gold); animation: lBar 2s 0.8s var(--ease) both; }
 
-    .loader-brand {
-      font-family: var(--serif);
-      font-size: clamp(3rem, 10vw, 6rem);
-      font-weight: 300;
-      letter-spacing: 1.2em;
-      color: var(--gold);
-      animation: fadeUp 1.4s var(--ease) both;
-    }
-    .loader-tag {
-      font-size: 0.6rem;
-      letter-spacing: 0.45em;
-      text-transform: uppercase;
-      color: var(--lgray);
-      margin-top: 0.6rem;
-      animation: fadeUp 1.4s 0.3s var(--ease) both;
-    }
-    .loader-track {
-      width: 180px; height: 1px;
-      background: #222;
-      margin-top: 3rem; overflow: hidden;
-    }
-    .loader-fill {
-      height: 100%;
-      background: var(--gold);
-      animation: fillBar 2.2s 0.4s var(--ease) both;
-    }
+    @keyframes lUp  { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:none} }
+    @keyframes lBar { from{width:0} to{width:100%} }
 
-    @keyframes fillBar  { from { width: 0; } to { width: 100%; } }
-    @keyframes fadeUp   { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
-    @keyframes fadeDown { from { opacity: 0; transform: translateY(-22px); } to { opacity: 1; transform: none; } }
-
-    /* ─── NAVBAR ───────────────────────────────────────────── */
-    #navbar {
-      position: fixed; top: 0; left: 0; right: 0;
-      z-index: 1000;
-      padding: 1.6rem 4rem;
+    /* ─── NAVBAR ─────────────────────────────────────────── */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: 1.7rem 4.5rem;
       display: flex; align-items: center; justify-content: space-between;
       transition: all 0.5s var(--ease);
     }
-    #navbar.solid {
-      background: rgba(8,8,8,0.96);
-      backdrop-filter: blur(24px);
-      padding: 1rem 4rem;
-      border-bottom: 1px solid rgba(201,169,110,0.12);
+    #nav.solid {
+      background: rgba(7,7,7,0.96); backdrop-filter: blur(28px);
+      padding: 1rem 4.5rem;
+      border-bottom: 1px solid rgba(201,169,110,0.1);
     }
-    .nav-logo {
-      font-family: var(--serif);
-      font-size: 1.9rem; font-weight: 300;
-      letter-spacing: 0.5em;
-      color: var(--gold); text-decoration: none;
-      text-transform: uppercase;
-    }
+    .nav-logo { font-family: var(--serif); font-size: 2rem; font-weight: 300; letter-spacing: 0.55em; color: var(--gold); text-decoration: none; }
     .nav-links { display: flex; gap: 3rem; list-style: none; }
     .nav-links a {
-      color: var(--cream); text-decoration: none;
-      font-size: 0.65rem; font-weight: 400;
-      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--cream); text-decoration: none; font-size: 0.64rem;
+      font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase;
       position: relative; transition: color 0.3s;
     }
     .nav-links a::after {
-      content: ''; position: absolute;
-      bottom: -4px; left: 0; right: 100%; height: 1px;
-      background: var(--gold);
-      transition: right 0.3s var(--ease);
+      content: ''; position: absolute; bottom: -4px; left: 0; right: 100%;
+      height: 1px; background: var(--gold); transition: right 0.3s var(--ease);
     }
     .nav-links a:hover { color: var(--gold); }
     .nav-links a:hover::after { right: 0; }
-    .nav-cta {
+    .nav-btn {
       border: 1px solid var(--gold); color: var(--gold);
-      padding: 0.55rem 1.4rem;
-      font-family: var(--sans); font-size: 0.62rem;
+      padding: 0.55rem 1.5rem; font-family: var(--sans); font-size: 0.61rem;
       font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase;
       text-decoration: none; transition: all 0.3s var(--ease); cursor: none;
     }
-    .nav-cta:hover { background: var(--gold); color: var(--bg); }
+    .nav-btn:hover { background: var(--gold); color: var(--bg); }
 
-    /* ─── HERO ─────────────────────────────────────────────── */
-    #hero {
-      position: relative; height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      overflow: hidden;
+    /* ─── HERO ───────────────────────────────────────────── */
+    #hero { position: relative; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    #hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    /* perspective grid overlay */
+    .hero-grid {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        linear-gradient(rgba(201,169,110,0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,169,110,0.028) 1px, transparent 1px);
+      background-size: 64px 64px;
+      transform: perspective(500px) rotateX(28deg) scaleY(2.2);
+      transform-origin: 50% 100%;
+      mask-image: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 55%);
+      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 55%);
+      opacity: 0.7;
     }
-    #hero-canvas {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
+    .hero-glow {
+      position: absolute;
+      width: 700px; height: 400px;
+      background: radial-gradient(ellipse, rgba(201,169,110,0.09) 0%, transparent 70%);
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      pointer-events: none;
     }
-    .hero-content {
-      position: relative; z-index: 2;
-      text-align: center; pointer-events: none;
+    .hero-content { position: relative; z-index: 2; text-align: center; pointer-events: none; }
+    .h-eyebrow {
+      font-size: 0.6rem; letter-spacing: 0.5em; text-transform: uppercase; color: var(--gold);
+      margin-bottom: 1.5rem; opacity: 0; transform: translateY(18px);
+      animation: lUp 1s 2.7s var(--ease) both;
     }
-    .hero-eyebrow {
-      font-size: 0.62rem; letter-spacing: 0.5em;
-      text-transform: uppercase; color: var(--gold);
-      margin-bottom: 1.5rem;
-      opacity: 0; transform: translateY(20px);
-      animation: fadeUp 1s 2.6s var(--ease) both;
+    .h-title {
+      font-family: var(--serif); font-size: clamp(5.5rem, 15vw, 12rem);
+      font-weight: 300; line-height: 1; letter-spacing: 0.35em; text-transform: uppercase;
+      color: var(--cream); opacity: 0; transform: translateY(32px);
+      animation: lUp 1.2s 2.9s var(--ease) both;
     }
-    .hero-title {
-      font-family: var(--serif);
-      font-size: clamp(5rem, 14vw, 11rem);
-      font-weight: 300; line-height: 1;
-      letter-spacing: 0.35em; text-transform: uppercase;
-      color: var(--cream);
-      opacity: 0; transform: translateY(30px);
-      animation: fadeUp 1.2s 2.8s var(--ease) both;
+    .h-title em {
+      font-style: italic; color: var(--gold);
+      text-shadow: 0 0 60px rgba(201,169,110,0.35);
     }
-    .hero-title em { color: var(--gold); font-style: italic; }
-    .hero-sub {
-      font-size: 0.75rem; letter-spacing: 0.3em;
-      text-transform: uppercase; color: var(--lgray);
-      margin-top: 1.4rem;
-      opacity: 0; animation: fadeUp 1s 3s var(--ease) both;
+    .h-sub {
+      font-size: 0.73rem; letter-spacing: 0.32em; text-transform: uppercase; color: var(--lgray);
+      margin-top: 1.4rem; opacity: 0; animation: lUp 1s 3.1s var(--ease) both;
     }
-    .hero-btns {
-      margin-top: 3rem;
-      display: flex; gap: 1.5rem; justify-content: center;
-      opacity: 0; animation: fadeUp 1s 3.2s var(--ease) both;
-      pointer-events: all;
+    .h-btns {
+      margin-top: 3rem; display: flex; gap: 1.5rem; justify-content: center;
+      opacity: 0; animation: lUp 1s 3.3s var(--ease) both; pointer-events: all;
     }
     .hero-scroll {
-      position: absolute; bottom: 2rem; left: 50%;
-      transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-      z-index: 2;
-      opacity: 0; animation: fadeUp 1s 3.6s var(--ease) both;
+      position: absolute; bottom: 2.2rem; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem; z-index: 2;
+      opacity: 0; animation: lUp 1s 3.7s var(--ease) both;
     }
-    .hero-scroll span {
-      font-size: 0.52rem; letter-spacing: 0.3em;
-      text-transform: uppercase; color: var(--gray);
-    }
-    .scroll-line {
+    .hero-scroll span { font-size: 0.5rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gray); }
+    .scr-line {
       width: 1px; height: 52px;
       background: linear-gradient(to bottom, var(--gold), transparent);
-      animation: scrollPulse 2.2s infinite;
+      animation: scrPulse 2.2s infinite;
     }
-    @keyframes scrollPulse {
-      0%,100% { opacity: 0.4; transform: scaleY(1); }
-      50%      { opacity: 1;   transform: scaleY(1.15); }
-    }
+    @keyframes scrPulse { 0%,100%{opacity:0.4;transform:scaleY(1)} 50%{opacity:1;transform:scaleY(1.15)} }
 
-    /* ─── BUTTONS ──────────────────────────────────────────── */
-    .btn-gold {
-      background: var(--gold); color: var(--bg);
-      border: none; padding: 1rem 2.5rem;
-      font-family: var(--sans); font-size: 0.68rem;
+    /* ─── BUTTONS ────────────────────────────────────────── */
+    .btn-gold, .btn-ghost {
+      display: inline-block; padding: 1rem 2.6rem;
+      font-family: var(--sans); font-size: 0.67rem;
       font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;
-      text-decoration: none; transition: all 0.3s var(--ease); cursor: none;
-      display: inline-block;
+      text-decoration: none; cursor: none; position: relative; overflow: hidden;
+      transition: all 0.32s var(--ease);
     }
-    .btn-gold:hover { background: var(--gold-light); transform: translateY(-3px); box-shadow: 0 12px 36px rgba(201,169,110,0.35); }
-    .btn-ghost {
-      background: transparent; color: var(--cream);
-      border: 1px solid rgba(240,235,224,0.38); padding: 1rem 2.5rem;
-      font-family: var(--sans); font-size: 0.68rem;
-      font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase;
-      text-decoration: none; transition: all 0.3s var(--ease); cursor: none;
-      display: inline-block;
+    .btn-gold  { background: var(--gold); color: var(--bg); border: none; }
+    .btn-ghost { background: transparent; color: var(--cream); border: 1px solid rgba(240,235,224,0.35); }
+
+    /* shimmer on gold btn */
+    .btn-gold::after {
+      content: ''; position: absolute;
+      top: -60%; left: -70%; width: 45%; height: 220%;
+      background: rgba(255,255,255,0.18); transform: skewX(-25deg);
+      transition: left 0.55s var(--ease);
     }
+    .btn-gold:hover  { background: var(--glight); transform: translateY(-3px); box-shadow: 0 14px 38px rgba(201,169,110,0.38); }
+    .btn-gold:hover::after { left: 130%; }
     .btn-ghost:hover { border-color: var(--gold); color: var(--gold); transform: translateY(-3px); }
 
-    /* ─── MARQUEE ──────────────────────────────────────────── */
-    .marquee-strip {
-      background: var(--gold); padding: 0.85rem 0;
-      overflow: hidden; white-space: nowrap;
-    }
-    .marquee-track {
-      display: inline-flex;
-      animation: marquee 24s linear infinite;
-    }
-    .m-item {
-      font-size: 0.62rem; font-weight: 600;
-      letter-spacing: 0.3em; text-transform: uppercase;
-      color: var(--bg); padding: 0 3rem;
-    }
-    .m-dot { color: rgba(8,8,8,0.35); padding: 0 0.5rem; }
-    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    /* ─── MARQUEE ────────────────────────────────────────── */
+    .marquee-bar { background: var(--gold); padding: 0.85rem 0; overflow: hidden; white-space: nowrap; }
+    .marquee-track { display: inline-flex; animation: mq 26s linear infinite; }
+    .mq-item { font-size: 0.61rem; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--bg); padding: 0 3rem; }
+    .mq-dot  { color: rgba(8,8,8,0.32); padding: 0 0.5rem; }
+    @keyframes mq { from{transform:translateX(0)} to{transform:translateX(-50%)} }
 
-    /* ─── SECTION SHARED ───────────────────────────────────── */
-    .section { padding: 8rem 4rem; }
-    .eyebrow {
-      font-size: 0.62rem; letter-spacing: 0.4em;
-      text-transform: uppercase; color: var(--gold);
-      display: block; margin-bottom: 1rem;
-    }
-    .sec-title {
-      font-family: var(--serif);
-      font-size: clamp(2.4rem, 5vw, 4rem);
-      font-weight: 300; color: var(--cream); line-height: 1.2;
-    }
+    /* ─── SHARED SECTION ─────────────────────────────────── */
+    .sec { padding: 8rem 4.5rem; }
+    .eyebrow { font-size: 0.61rem; letter-spacing: 0.4em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 1rem; }
+    .sec-title { font-family: var(--serif); font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 300; color: var(--cream); line-height: 1.2; }
     .sec-title em { font-style: italic; color: var(--gold); }
 
-    /* ─── COLLECTIONS ──────────────────────────────────────── */
-    .collections-head {
-      display: flex; justify-content: space-between; align-items: flex-end;
-      margin-bottom: 4rem;
+    /* ─── COLLECTIONS ────────────────────────────────────── */
+    .col-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4.5rem; }
+    .col-desc { font-size: 0.74rem; color: var(--gray); max-width: 300px; line-height: 1.95; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 2rem; }
+
+    .pc { background: var(--card); border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden; transform-style: preserve-3d; transition: border-color 0.3s, box-shadow 0.4s; cursor: none; }
+    .pc:hover { border-color: rgba(201,169,110,0.32); box-shadow: 0 22px 60px rgba(0,0,0,0.55); }
+
+    /* animated gradient border on top */
+    .pc::before {
+      content: ''; position: absolute; top: 0; left: -100%; right: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      transition: left 0.5s var(--ease), right 0.5s var(--ease);
     }
-    .collections-desc {
-      font-size: 0.75rem; color: var(--gray);
-      max-width: 300px; line-height: 1.9; letter-spacing: 0.04em;
-    }
-    .products-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2rem;
-    }
-    .p-card {
-      background: var(--card-bg);
-      border: 1px solid rgba(255,255,255,0.05);
-      position: relative; overflow: hidden;
-      transform-style: preserve-3d;
-      transition: border-color 0.3s, box-shadow 0.4s;
-      cursor: none;
-    }
-    .p-card:hover {
-      border-color: rgba(201,169,110,0.3);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    }
-    .p-visual {
-      height: 300px;
-      display: flex; align-items: center; justify-content: center;
-      position: relative; overflow: hidden;
-      transition: transform 0.5s var(--ease);
-    }
-    .p-card:hover .p-visual { transform: scale(1.03); }
-    .p-icon {
-      font-size: 5.5rem;
-      transition: transform 0.6s var(--ease);
-      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.4));
-    }
-    .p-card:hover .p-icon { transform: scale(1.12) rotateY(18deg) rotateX(-5deg); }
-    .p-badge {
-      position: absolute; top: 1rem; right: 1rem;
-      background: var(--gold); color: var(--bg);
-      font-size: 0.52rem; font-weight: 700;
-      letter-spacing: 0.15em; text-transform: uppercase;
-      padding: 0.3rem 0.75rem;
-    }
-    .p-badge.summer { background: var(--gold-dark); }
-    .p-info {
-      padding: 1.5rem;
-      border-top: 1px solid rgba(255,255,255,0.05);
-    }
-    .p-cat {
-      font-size: 0.58rem; letter-spacing: 0.2em;
-      text-transform: uppercase; color: var(--gold);
-      margin-bottom: 0.4rem;
-    }
-    .p-name {
-      font-family: var(--serif); font-size: 1.3rem;
-      font-weight: 400; color: var(--cream); margin-bottom: 0.4rem;
-    }
-    .p-price { font-size: 0.82rem; color: var(--lgray); }
-    .p-btn {
+    .pc:hover::before { left: 0; right: 0; }
+
+    .pc-vis { height: 290px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .pc-vis::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), transparent 60%); }
+    .pc-ico { font-size: 5.5rem; transition: transform 0.55s var(--ease); filter: drop-shadow(0 8px 24px rgba(0,0,0,0.45)); }
+    .pc:hover .pc-ico { transform: scale(1.14) rotateY(20deg) rotateX(-6deg); }
+
+    .pc-badge { position: absolute; top: 1rem; right: 1rem; background: var(--gold); color: var(--bg); font-size: 0.5rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.3rem 0.78rem; z-index: 1; }
+    .pc-badge.s { background: var(--gdark); }
+
+    .pc-info { padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); }
+    .pc-cat  { font-size: 0.57rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.4rem; }
+    .pc-name { font-family: var(--serif); font-size: 1.3rem; font-weight: 400; color: var(--cream); margin-bottom: 0.35rem; }
+    .pc-price{ font-size: 0.8rem; color: var(--lgray); }
+    .pc-btn  {
       display: block; width: 100%; margin-top: 1rem;
-      background: transparent; border: 1px solid var(--gold);
-      color: var(--gold); padding: 0.7rem;
-      font-family: var(--sans); font-size: 0.6rem;
-      letter-spacing: 0.2em; text-transform: uppercase;
-      cursor: none; transition: all 0.3s var(--ease);
-      opacity: 0; transform: translateY(8px);
+      background: transparent; border: 1px solid var(--gold); color: var(--gold);
+      padding: 0.7rem; font-family: var(--sans); font-size: 0.58rem;
+      letter-spacing: 0.2em; text-transform: uppercase; cursor: none;
+      opacity: 0; transform: translateY(9px);
       transition: opacity 0.3s, transform 0.3s, background 0.3s, color 0.3s;
     }
-    .p-card:hover .p-btn { opacity: 1; transform: translateY(0); }
-    .p-btn:hover { background: var(--gold); color: var(--bg); }
+    .pc:hover .pc-btn { opacity: 1; transform: none; }
+    .pc-btn:hover { background: var(--gold); color: var(--bg); }
 
-    .card-winter { background: linear-gradient(145deg, #101828 0%, #0f2040 60%, #0a3060 100%); }
-    .card-summer { background: linear-gradient(145deg, #1c1000 0%, #3a1e00 60%, #5e3200 100%); }
+    .cw { background: linear-gradient(145deg,#0e1825,#0f2545,#0a3268); }
+    .cs { background: linear-gradient(145deg,#1a1000,#3b1e00,#5e3200); }
 
-    /* ─── 3D SHOWCASE ──────────────────────────────────────── */
+    /* ─── 3D SHOWCASE ────────────────────────────────────── */
     #showcase {
       position: relative; min-height: 100vh;
       display: flex; align-items: center;
-      overflow: hidden; padding: 0;
-      background: #060606;
+      overflow: hidden; padding: 0; background: #050505;
     }
-    #showcase-canvas {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%; opacity: 0.65;
-    }
-    .showcase-inner {
-      position: relative; z-index: 2;
-      padding: 8rem 4rem; max-width: 580px;
-    }
-    .showcase-title {
-      font-family: var(--serif);
-      font-size: clamp(2.8rem, 6vw, 5.5rem);
-      font-weight: 300; line-height: 1.1;
-      margin-bottom: 2rem;
-    }
-    .showcase-body {
-      font-size: 0.78rem; color: var(--gray);
-      line-height: 2.1; margin-bottom: 2.5rem; letter-spacing: 0.03em;
-    }
-    .stats-row {
-      display: flex; gap: 4rem;
-      margin-top: 4rem; padding-top: 4rem;
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-    .stat-num  { font-family: var(--serif); font-size: 3rem; font-weight: 300; color: var(--gold); display: block; }
-    .stat-lbl  { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray); margin-top: 0.3rem; display: block; }
+    #sc-canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.68; }
+    .sc-inner { position: relative; z-index: 2; padding: 8rem 4.5rem; max-width: 580px; }
+    .sc-title { font-family: var(--serif); font-size: clamp(2.8rem, 6vw, 5.8rem); font-weight: 300; line-height: 1.1; margin-bottom: 2rem; }
+    .sc-body  { font-size: 0.77rem; color: var(--gray); line-height: 2.15; margin-bottom: 2.5rem; letter-spacing: 0.03em; }
+    .stats-row{ display: flex; gap: 4rem; margin-top: 4rem; padding-top: 4rem; border-top: 1px solid rgba(255,255,255,0.06); }
+    .s-num { font-family: var(--serif); font-size: 3.2rem; font-weight: 300; color: var(--gold); display: block; }
+    .s-lbl { font-size: 0.57rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray); margin-top: 0.3rem; display: block; }
 
-    /* ─── STORY ────────────────────────────────────────────── */
+    /* ─── ORBIT CAROUSEL ─────────────────────────────────── */
+    #orbit { background: #0a0a0a; overflow: hidden; }
+    .orbit-head { text-align: center; margin-bottom: 5rem; }
+    .orbit-wrapper {
+      position: relative; height: 560px;
+      display: flex; align-items: center; justify-content: center;
+      perspective: 1100px;
+    }
+    .orbit-stage { position: relative; width: 200px; height: 300px; transform-style: preserve-3d; }
+    .orbit-item { position: absolute; top: 0; left: 0; width: 200px; height: 300px; transition: opacity 0.2s; }
+    .orbit-face {
+      width: 100%; height: 100%;
+      background: #111; border: 1px solid rgba(201,169,110,0.18);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0.75rem; padding: 1.5rem; text-align: center;
+      transition: border-color 0.3s;
+    }
+    .orbit-item:hover .orbit-face { border-color: rgba(201,169,110,0.5); }
+    .oi-ico   { font-size: 3.4rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)); }
+    .oi-cat   { font-size: 0.52rem; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; }
+    .oi-name  { font-family: var(--serif); font-size: 1.05rem; font-weight: 400; color: var(--cream); }
+    .oi-price { font-size: 0.75rem; color: var(--lgray); }
+    .orbit-glow {
+      position: absolute; width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(201,169,110,0.18) 0%, transparent 70%);
+      border-radius: 50%; pointer-events: none;
+      animation: glowPulse 3.5s ease-in-out infinite;
+    }
+    @keyframes glowPulse { 0%,100%{transform:scale(1);opacity:0.6} 50%{transform:scale(1.5);opacity:1} }
+
+    /* ─── STORY ──────────────────────────────────────────── */
     #story { background: var(--dark); position: relative; overflow: hidden; }
     .story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8rem; align-items: center; }
-    .story-visual { position: relative; height: 520px; }
-    .sv-frame1 {
-      position: absolute;
-      width: 300px; height: 420px;
-      border: 1px solid rgba(201,169,110,0.18);
-      top: 0; left: 20px; transform: rotate(-5deg);
-    }
-    .sv-frame2 {
-      position: absolute;
-      width: 300px; height: 420px;
-      background: rgba(201,169,110,0.03);
-      border: 1px solid rgba(201,169,110,0.08);
-      top: 40px; left: 60px; transform: rotate(3deg);
-    }
-    .sv-face {
-      position: absolute; top: 20px; left: 40px;
-      width: 280px; height: 400px;
-      background: linear-gradient(175deg, #1a1a1a, #0a0a0a);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 7rem; z-index: 1;
-    }
-    .story-quote {
-      font-family: var(--serif); font-size: 1.25rem;
-      font-style: italic; color: var(--gold);
-      border-left: 2px solid var(--gold);
-      padding-left: 1.5rem; margin: 2rem 0;
-      line-height: 1.65;
-    }
-    .story-body-p {
-      font-size: 0.76rem; color: var(--gray);
-      line-height: 2.1; margin-bottom: 1.4rem; letter-spacing: 0.03em;
-    }
+    .sv { position: relative; height: 520px; }
+    .sv-f1 { position: absolute; width: 300px; height: 420px; border: 1px solid rgba(201,169,110,0.16); top: 0; left: 20px; transform: rotate(-5deg); }
+    .sv-f2 { position: absolute; width: 300px; height: 420px; background: rgba(201,169,110,0.025); border: 1px solid rgba(201,169,110,0.08); top: 40px; left: 60px; transform: rotate(3deg); }
+    .sv-face { position: absolute; top: 20px; left: 40px; width: 280px; height: 400px; background: linear-gradient(175deg,#1a1a1a,#080808); display: flex; align-items: center; justify-content: center; font-size: 7rem; z-index: 1; }
+    .sq { font-family: var(--serif); font-size: 1.22rem; font-style: italic; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 1.5rem; margin: 2rem 0; line-height: 1.65; }
+    .sb { font-size: 0.75rem; color: var(--gray); line-height: 2.1; margin-bottom: 1.4rem; }
 
-    /* ─── FEATURES ─────────────────────────────────────────── */
+    /* ─── FEATURES ───────────────────────────────────────── */
     #features { background: var(--bg); }
-    .features-head { text-align: center; margin-bottom: 5rem; }
-    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3rem; }
-    .f-card {
-      padding: 3rem 2rem;
-      border: 1px solid rgba(255,255,255,0.05);
+    .feat-head { text-align: center; margin-bottom: 5rem; }
+    .feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 3rem; }
+    .fc {
+      padding: 3rem 2.2rem; border: 1px solid rgba(255,255,255,0.05);
       position: relative; overflow: hidden;
       transition: border-color 0.3s, transform 0.5s var(--ease);
     }
-    .f-card:hover { border-color: rgba(201,169,110,0.3); transform: translateY(-10px); }
-    .f-card::before {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 2px;
+    .fc:hover { border-color: rgba(201,169,110,0.3); transform: translateY(-10px); }
+    .fc::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
       background: linear-gradient(90deg, transparent, var(--gold), transparent);
       transform: scaleX(0); transition: transform 0.45s var(--ease);
     }
-    .f-card:hover::before { transform: scaleX(1); }
-    .f-icon  { font-size: 2.4rem; display: block; margin-bottom: 1.5rem; }
-    .f-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 400; color: var(--cream); margin-bottom: 1rem; }
-    .f-desc  { font-size: 0.73rem; color: var(--gray); line-height: 1.95; }
-
-    /* ─── STYLIST CTA ──────────────────────────────────────── */
-    #stylist-cta {
-      background: var(--dark);
-      text-align: center; position: relative; overflow: hidden;
+    .fc:hover::before { transform: scaleX(1); }
+    .fc-bg {
+      position: absolute; top: -40px; right: -40px;
+      font-family: var(--serif); font-size: 8rem; font-weight: 300;
+      color: rgba(201,169,110,0.04); pointer-events: none;
+      transition: transform 0.5s var(--ease);
     }
-    #stylist-cta::before {
-      content: 'NOOR';
-      position: absolute; font-family: var(--serif);
-      font-size: clamp(8rem, 25vw, 22rem);
+    .fc:hover .fc-bg { transform: scale(1.1) rotate(-5deg); }
+    .fc-ico   { font-size: 2.4rem; display: block; margin-bottom: 1.5rem; }
+    .fc-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 400; color: var(--cream); margin-bottom: 1rem; }
+    .fc-desc  { font-size: 0.72rem; color: var(--gray); line-height: 1.95; }
+
+    /* ─── STYLIST CTA ─────────────────────────────────────── */
+    #cta-sec {
+      background: var(--dark); text-align: center;
+      position: relative; overflow: hidden;
+    }
+    #cta-sec::before {
+      content: 'NOOR'; position: absolute;
+      font-family: var(--serif); font-size: clamp(8rem,24vw,22rem);
       font-weight: 300; color: rgba(201,169,110,0.03);
-      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
       white-space: nowrap; pointer-events: none;
     }
     .cta-title {
-      font-family: var(--serif);
-      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      font-family: var(--serif); font-size: clamp(2.5rem,5vw,4.5rem);
       font-weight: 300; color: var(--cream);
-      margin-bottom: 1.5rem; line-height: 1.2; position: relative;
+      margin-bottom: 1.4rem; line-height: 1.2; position: relative;
     }
-    .cta-body {
-      font-size: 0.78rem; color: var(--gray);
-      max-width: 480px; margin: 0 auto 3rem;
-      line-height: 2.1; letter-spacing: 0.03em; position: relative;
-    }
+    .cta-body { font-size: 0.77rem; color: var(--gray); max-width: 480px; margin: 0 auto 3rem; line-height: 2.1; position: relative; }
     .cta-btns { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; position: relative; }
 
-    /* ─── TESTIMONIALS ─────────────────────────────────────── */
+    /* ─── TESTIMONIALS ───────────────────────────────────── */
     #testimonials { background: var(--bg); }
-    .t-head { text-align: center; margin-bottom: 4rem; }
-    .t-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
-    .t-card {
-      padding: 2.5rem;
-      border: 1px solid rgba(255,255,255,0.05);
+    .test-head { text-align: center; margin-bottom: 4rem; }
+    .test-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2rem; }
+    .tc {
+      padding: 2.5rem; border: 1px solid rgba(255,255,255,0.05);
+      position: relative; overflow: hidden;
       transition: border-color 0.3s, transform 0.4s var(--ease);
     }
-    .t-card:hover { border-color: rgba(201,169,110,0.2); transform: translateY(-5px); }
-    .t-stars  { color: var(--gold); font-size: 0.9rem; letter-spacing: 0.2em; margin-bottom: 1.5rem; }
-    .t-text   { font-family: var(--serif); font-size: 1.05rem; font-style: italic; color: var(--cream); line-height: 1.75; margin-bottom: 2rem; }
-    .t-author { display: flex; align-items: center; gap: 1rem; }
-    .t-avatar {
-      width: 42px; height: 42px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--serif); font-size: 1.1rem; color: var(--bg); font-weight: 600;
-      flex-shrink: 0;
-    }
-    .t-name { font-size: 0.75rem; font-weight: 600; color: var(--cream); letter-spacing: 0.04em; }
-    .t-loc  { font-size: 0.62rem; color: var(--gray); margin-top: 0.2rem; }
+    .tc:hover { border-color: rgba(201,169,110,0.2); transform: translateY(-5px); }
+    .tc-stars { color: var(--gold); font-size: 0.88rem; letter-spacing: 0.2em; margin-bottom: 1.5rem; }
+    .tc-text  { font-family: var(--serif); font-size: 1.05rem; font-style: italic; color: var(--cream); line-height: 1.75; margin-bottom: 2rem; }
+    .tc-auth  { display: flex; align-items: center; gap: 1rem; }
+    .tc-av    { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg,var(--gdark),var(--gold)); display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 1.1rem; color: var(--bg); font-weight: 600; flex-shrink: 0; }
+    .tc-name  { font-size: 0.74rem; font-weight: 600; color: var(--cream); }
+    .tc-loc   { font-size: 0.6rem; color: var(--gray); margin-top: 0.2rem; }
 
-    /* ─── FOOTER ───────────────────────────────────────────── */
-    footer {
-      background: #040404;
-      padding: 5.5rem 4rem 3rem;
-      border-top: 1px solid rgba(255,255,255,0.05);
-    }
-    .footer-top {
-      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 4rem; margin-bottom: 4rem; padding-bottom: 4rem;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-    .footer-brand-name {
-      font-family: var(--serif); font-size: 2.4rem;
-      font-weight: 300; letter-spacing: 0.35em; color: var(--gold);
-      display: block; margin-bottom: 1rem;
-    }
-    .footer-brand p { font-size: 0.73rem; color: var(--gray); line-height: 1.9; max-width: 270px; }
-    .f-col h4 {
-      font-size: 0.62rem; font-weight: 600;
-      letter-spacing: 0.25em; text-transform: uppercase;
-      color: var(--cream); margin-bottom: 1.5rem;
-    }
-    .f-col ul { list-style: none; }
-    .f-col ul li { margin-bottom: 0.8rem; }
-    .f-col ul li a { font-size: 0.73rem; color: var(--gray); text-decoration: none; transition: color 0.3s; }
-    .f-col ul li a:hover { color: var(--gold); }
-    .footer-bottom {
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .footer-bottom p { font-size: 0.62rem; color: var(--gray); letter-spacing: 0.08em; }
-    .fb-links { display: flex; gap: 2rem; }
-    .fb-links a { font-size: 0.62rem; color: var(--gray); text-decoration: none; letter-spacing: 0.08em; transition: color 0.3s; }
-    .fb-links a:hover { color: var(--gold); }
+    /* ─── FOOTER ─────────────────────────────────────────── */
+    footer { background: #030303; padding: 5.5rem 4.5rem 3rem; border-top: 1px solid rgba(255,255,255,0.05); }
+    .ft-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 4rem; margin-bottom: 4rem; padding-bottom: 4rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .ft-bname { font-family: var(--serif); font-size: 2.4rem; font-weight: 300; letter-spacing: 0.35em; color: var(--gold); display: block; margin-bottom: 1rem; }
+    .ft-brand p { font-size: 0.72rem; color: var(--gray); line-height: 1.9; max-width: 270px; }
+    .ft-col h4 { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.25em; text-transform: uppercase; color: var(--cream); margin-bottom: 1.5rem; }
+    .ft-col ul { list-style: none; }
+    .ft-col ul li { margin-bottom: 0.8rem; }
+    .ft-col ul li a { font-size: 0.72rem; color: var(--gray); text-decoration: none; transition: color 0.3s; }
+    .ft-col ul li a:hover { color: var(--gold); }
+    .ft-bot { display: flex; justify-content: space-between; align-items: center; }
+    .ft-bot p { font-size: 0.6rem; color: var(--gray); letter-spacing: 0.08em; }
+    .ft-links { display: flex; gap: 2rem; }
+    .ft-links a { font-size: 0.6rem; color: var(--gray); text-decoration: none; transition: color 0.3s; }
+    .ft-links a:hover { color: var(--gold); }
 
-    /* ─── SCROLL REVEAL ────────────────────────────────────── */
-    .reveal {
-      opacity: 0; transform: translateY(42px);
-      transition: opacity 0.85s var(--ease), transform 0.85s var(--ease);
-    }
-    .reveal.on { opacity: 1; transform: none; }
-    .d1 { transition-delay: 0.1s; }
-    .d2 { transition-delay: 0.2s; }
-    .d3 { transition-delay: 0.3s; }
-    .d4 { transition-delay: 0.4s; }
-    .d5 { transition-delay: 0.5s; }
+    /* ─── REVEAL ─────────────────────────────────────────── */
+    .rv { opacity: 0; transform: translateY(44px); transition: opacity 0.88s var(--ease), transform 0.88s var(--ease); }
+    .rv.on { opacity: 1; transform: none; }
+    .d1{transition-delay:0.1s} .d2{transition-delay:0.2s} .d3{transition-delay:0.3s}
+    .d4{transition-delay:0.4s} .d5{transition-delay:0.5s}
 
-    /* ─── RESPONSIVE ───────────────────────────────────────── */
-    @media (max-width: 1100px) {
-      .products-grid { grid-template-columns: repeat(2, 1fr); }
-      .features-grid { grid-template-columns: repeat(2, 1fr); }
-      .footer-top    { grid-template-columns: 1fr 1fr; }
-      .story-grid    { grid-template-columns: 1fr; }
-      .stats-row     { gap: 2.5rem; }
+    /* ─── RESPONSIVE ─────────────────────────────────────── */
+    @media(max-width:1100px){
+      .grid-3  { grid-template-columns:repeat(2,1fr); }
+      .feat-grid{ grid-template-columns:repeat(2,1fr); }
+      .ft-grid  { grid-template-columns:1fr 1fr; }
+      .story-grid{ grid-template-columns:1fr; }
+      .stats-row { gap:2.5rem; }
     }
-    @media (max-width: 768px) {
-      .section       { padding: 5rem 1.8rem; }
-      #navbar        { padding: 1.4rem 1.8rem; }
-      .nav-links     { display: none; }
-      .products-grid { grid-template-columns: 1fr; }
-      .features-grid { grid-template-columns: 1fr; }
-      .t-grid        { grid-template-columns: 1fr; }
-      .collections-head { flex-direction: column; gap: 1.2rem; align-items: flex-start; }
-      .footer-top    { grid-template-columns: 1fr; }
-      .footer-bottom { flex-direction: column; gap: 1rem; text-align: center; }
-      .stats-row     { flex-wrap: wrap; gap: 2rem; }
-      .story-visual  { height: 340px; }
+    @media(max-width:768px){
+      .sec     { padding:5rem 1.8rem; }
+      #nav     { padding:1.4rem 1.8rem; }
+      .nav-links{ display:none; }
+      .grid-3  { grid-template-columns:1fr; }
+      .feat-grid{ grid-template-columns:1fr; }
+      .test-grid{ grid-template-columns:1fr; }
+      .col-head { flex-direction:column; gap:1.2rem; align-items:flex-start; }
+      .ft-grid  { grid-template-columns:1fr; }
+      .ft-bot   { flex-direction:column; gap:1rem; text-align:center; }
+      .stats-row{ flex-wrap:wrap; gap:2rem; }
+      .sv       { height:320px; }
+      .orbit-wrapper{ height:400px; }
+      #orbit    { display:none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- ─── CURSOR ──────────────────────────────────────────── -->
-  <div class="cursor"  id="cursor"></div>
-  <div class="cursor-ring" id="cursor-ring"></div>
+  <!-- progress bar -->
+  <div id="progress-bar"></div>
 
-  <!-- ─── LOADER ─────────────────────────────────────────── -->
+  <!-- cursor -->
+  <div id="cur-dot"></div>
+  <div id="cur-ring"></div>
+  <canvas id="trail-canvas"></canvas>
+
+  <!-- loader -->
   <div id="loader">
-    <div class="loader-brand">NOOR</div>
-    <div class="loader-tag">Illuminate Your Style</div>
-    <div class="loader-track"><div class="loader-fill"></div></div>
+    <div class="l-letters">
+      <span class="l-letter">N</span>
+      <span class="l-letter">O</span>
+      <span class="l-letter">O</span>
+      <span class="l-letter">R</span>
+    </div>
+    <p class="l-tag">Illuminate Your Style</p>
+    <div class="l-track"><div class="l-fill"></div></div>
   </div>
 
-  <!-- ─── NAVBAR ─────────────────────────────────────────── -->
-  <nav id="navbar">
+  <!-- navbar -->
+  <nav id="nav">
     <a href="#hero" class="nav-logo">NOOR</a>
     <ul class="nav-links">
       <li><a href="#collections">Collections</a></li>
-      <li><a href="#showcase">Showcase</a></li>
+      <li><a href="#orbit">3D View</a></li>
       <li><a href="#story">Story</a></li>
       <li><a href="#testimonials">Reviews</a></li>
     </ul>
-    <a href="#stylist-cta" class="nav-cta">Style Me</a>
+    <a href="#cta-sec" class="nav-btn">Style Me</a>
   </nav>
 
-  <!-- ─── HERO ────────────────────────────────────────────── -->
+  <!-- hero -->
   <section id="hero">
     <canvas id="hero-canvas"></canvas>
+    <div class="hero-grid"></div>
+    <div class="hero-glow"></div>
     <div class="hero-content">
-      <p class="hero-eyebrow">SS 2025 — Premium Collection</p>
-      <h1 class="hero-title">N<em>OO</em>R</h1>
-      <p class="hero-sub">Where Light Meets Timeless Elegance</p>
-      <div class="hero-btns">
+      <p class="h-eyebrow">SS 2025 — Premium Collection</p>
+      <h1 class="h-title">N<em>OO</em>R</h1>
+      <p class="h-sub">Where Light Meets Timeless Elegance</p>
+      <div class="h-btns">
         <a href="#collections" class="btn-gold">Explore Collection</a>
-        <a href="#stylist-cta" class="btn-ghost">Get Styled</a>
+        <a href="#cta-sec"     class="btn-ghost">Get Styled</a>
       </div>
     </div>
-    <div class="hero-scroll">
-      <span>Scroll</span>
-      <div class="scroll-line"></div>
-    </div>
+    <div class="hero-scroll"><span>Scroll</span><div class="scr-line"></div></div>
   </section>
 
-  <!-- ─── MARQUEE ─────────────────────────────────────────── -->
-  <div class="marquee-strip" aria-hidden="true">
+  <!-- marquee -->
+  <div class="marquee-bar" aria-hidden="true">
     <div class="marquee-track">
-      <span class="m-item">Premium Fabrics</span><span class="m-dot">✦</span>
-      <span class="m-item">Artisan Crafted</span><span class="m-dot">✦</span>
-      <span class="m-item">Timeless Style</span><span class="m-dot">✦</span>
-      <span class="m-item">Exclusive Designs</span><span class="m-dot">✦</span>
-      <span class="m-item">Free Shipping</span><span class="m-dot">✦</span>
-      <span class="m-item">New Season 2025</span><span class="m-dot">✦</span>
-      <span class="m-item">Premium Fabrics</span><span class="m-dot">✦</span>
-      <span class="m-item">Artisan Crafted</span><span class="m-dot">✦</span>
-      <span class="m-item">Timeless Style</span><span class="m-dot">✦</span>
-      <span class="m-item">Exclusive Designs</span><span class="m-dot">✦</span>
-      <span class="m-item">Free Shipping</span><span class="m-dot">✦</span>
-      <span class="m-item">New Season 2025</span><span class="m-dot">✦</span>
+      <span class="mq-item">Premium Fabrics</span><span class="mq-dot">✦</span>
+      <span class="mq-item">Artisan Crafted</span><span class="mq-dot">✦</span>
+      <span class="mq-item">Timeless Style</span><span class="mq-dot">✦</span>
+      <span class="mq-item">Exclusive Designs</span><span class="mq-dot">✦</span>
+      <span class="mq-item">Free Shipping</span><span class="mq-dot">✦</span>
+      <span class="mq-item">New Season 2025</span><span class="mq-dot">✦</span>
+      <span class="mq-item">Premium Fabrics</span><span class="mq-dot">✦</span>
+      <span class="mq-item">Artisan Crafted</span><span class="mq-dot">✦</span>
+      <span class="mq-item">Timeless Style</span><span class="mq-dot">✦</span>
+      <span class="mq-item">Exclusive Designs</span><span class="mq-dot">✦</span>
+      <span class="mq-item">Free Shipping</span><span class="mq-dot">✦</span>
+      <span class="mq-item">New Season 2025</span><span class="mq-dot">✦</span>
     </div>
   </div>
 
-  <!-- ─── COLLECTIONS ──────────────────────────────────────── -->
-  <section id="collections" class="section" style="background: var(--bg);">
-    <div class="collections-head">
+  <!-- collections -->
+  <section id="collections" class="sec" style="background:var(--bg)">
+    <div class="col-head">
       <div>
-        <span class="eyebrow reveal">Featured Products</span>
-        <h2 class="sec-title reveal d1">Our <em>Collections</em></h2>
+        <span class="eyebrow rv">Featured Products</span>
+        <h2 class="sec-title rv d1">Our <em>Collections</em></h2>
       </div>
-      <p class="collections-desc reveal d2">Thoughtfully crafted for every occasion and season. Each garment tells a story of quality and refinement.</p>
+      <p class="col-desc rv d2">Thoughtfully crafted for every occasion and season. Each garment tells a story of quality and refinement.</p>
     </div>
-    <div class="products-grid">
+    <div class="grid-3">
 
-      <div class="p-card reveal">
-        <div class="p-visual card-winter">
-          <div class="p-icon">🧥</div>
-          <span class="p-badge">Winter</span>
-        </div>
-        <div class="p-info">
-          <p class="p-cat">Winter Collection</p>
-          <h3 class="p-name">Leather Jacket</h3>
-          <p class="p-price">Rs. 8,000</p>
-          <button class="p-btn">Add to Cart</button>
+      <div class="pc rv">
+        <div class="pc-vis cw"><div class="pc-ico">🧥</div><span class="pc-badge">Winter</span></div>
+        <div class="pc-info">
+          <p class="pc-cat">Winter Collection</p><h3 class="pc-name">Leather Jacket</h3>
+          <p class="pc-price">Rs. 8,000</p><button class="pc-btn">Add to Cart</button>
         </div>
       </div>
 
-      <div class="p-card reveal d1">
-        <div class="p-visual card-winter">
-          <div class="p-icon">🧣</div>
-          <span class="p-badge">Winter</span>
-        </div>
-        <div class="p-info">
-          <p class="p-cat">Winter Collection</p>
-          <h3 class="p-name">Premium Fleece Hoodie</h3>
-          <p class="p-price">Rs. 3,500</p>
-          <button class="p-btn">Add to Cart</button>
+      <div class="pc rv d1">
+        <div class="pc-vis cw"><div class="pc-ico">🧣</div><span class="pc-badge">Winter</span></div>
+        <div class="pc-info">
+          <p class="pc-cat">Winter Collection</p><h3 class="pc-name">Premium Fleece Hoodie</h3>
+          <p class="pc-price">Rs. 3,500</p><button class="pc-btn">Add to Cart</button>
         </div>
       </div>
 
-      <div class="p-card reveal d2">
-        <div class="p-visual card-winter">
-          <div class="p-icon">👔</div>
-          <span class="p-badge">Winter</span>
-        </div>
-        <div class="p-info">
-          <p class="p-cat">Winter Collection</p>
-          <h3 class="p-name">Flannel Shirt</h3>
-          <p class="p-price">Rs. 2,500</p>
-          <button class="p-btn">Add to Cart</button>
+      <div class="pc rv d2">
+        <div class="pc-vis cw"><div class="pc-ico">👔</div><span class="pc-badge">Winter</span></div>
+        <div class="pc-info">
+          <p class="pc-cat">Winter Collection</p><h3 class="pc-name">Flannel Shirt</h3>
+          <p class="pc-price">Rs. 2,500</p><button class="pc-btn">Add to Cart</button>
         </div>
       </div>
 
-      <div class="p-card reveal d1">
-        <div class="p-visual card-summer">
-          <div class="p-icon">👕</div>
-          <span class="p-badge summer">Summer</span>
-        </div>
-        <div class="p-info">
-          <p class="p-cat">Summer Collection</p>
-          <h3 class="p-name">Cotton T-Shirt</h3>
-          <p class="p-price">Rs. 1,500</p>
-          <button class="p-btn">Add to Cart</button>
+      <div class="pc rv d1">
+        <div class="pc-vis cs"><div class="pc-ico">👕</div><span class="pc-badge s">Summer</span></div>
+        <div class="pc-info">
+          <p class="pc-cat">Summer Collection</p><h3 class="pc-name">Cotton T-Shirt</h3>
+          <p class="pc-price">Rs. 1,500</p><button class="pc-btn">Add to Cart</button>
         </div>
       </div>
 
-      <div class="p-card reveal d2">
-        <div class="p-visual card-summer">
-          <div class="p-icon">👗</div>
-          <span class="p-badge summer">Summer</span>
-        </div>
-        <div class="p-info">
-          <p class="p-cat">Summer Collection</p>
-          <h3 class="p-name">Linen Casual Shirt</h3>
-          <p class="p-price">Rs. 2,800</p>
-          <button class="p-btn">Add to Cart</button>
+      <div class="pc rv d2">
+        <div class="pc-vis cs"><div class="pc-ico">👗</div><span class="pc-badge s">Summer</span></div>
+        <div class="pc-info">
+          <p class="pc-cat">Summer Collection</p><h3 class="pc-name">Linen Casual Shirt</h3>
+          <p class="pc-price">Rs. 2,800</p><button class="pc-btn">Add to Cart</button>
         </div>
       </div>
 
-      <div class="p-card reveal d3">
-        <div class="p-visual card-summer">
-          <div class="p-icon">👖</div>
-          <span class="p-badge summer">Summer</span>
-        </div>
-        <div class="p-info">
-          <p class="p-cat">Summer Collection</p>
-          <h3 class="p-name">Lightweight Chinos</h3>
-          <p class="p-price">Rs. 3,000</p>
-          <button class="p-btn">Add to Cart</button>
+      <div class="pc rv d3">
+        <div class="pc-vis cs"><div class="pc-ico">👖</div><span class="pc-badge s">Summer</span></div>
+        <div class="pc-info">
+          <p class="pc-cat">Summer Collection</p><h3 class="pc-name">Lightweight Chinos</h3>
+          <p class="pc-price">Rs. 3,000</p><button class="pc-btn">Add to Cart</button>
         </div>
       </div>
 
     </div>
   </section>
 
-  <!-- ─── 3D SHOWCASE ──────────────────────────────────────── -->
+  <!-- 3D showcase -->
   <section id="showcase">
-    <canvas id="showcase-canvas"></canvas>
-    <div class="showcase-inner">
-      <span class="eyebrow reveal">Interactive 3D Experience</span>
-      <h2 class="showcase-title reveal d1">
-        Crafted with<br><em style="color:var(--gold);font-style:italic;">Precision</em> & Passion
-      </h2>
-      <p class="showcase-body reveal d2">
-        Every thread, every stitch, every detail is meticulously considered. Our garments are engineered to move with you, crafted from fabrics that breathe and materials that endure.
-      </p>
-      <a href="#collections" class="btn-gold reveal d3">View Full Collection</a>
-      <div class="stats-row reveal d4">
-        <div><span class="stat-num">500+</span><span class="stat-lbl">Designs</span></div>
-        <div><span class="stat-num">10K+</span><span class="stat-lbl">Happy Clients</span></div>
-        <div><span class="stat-num">8+</span><span class="stat-lbl">Years of Craft</span></div>
+    <canvas id="sc-canvas"></canvas>
+    <div class="sc-inner">
+      <span class="eyebrow rv">Interactive 3D Experience</span>
+      <h2 class="sc-title rv d1">Crafted with<br><em style="color:var(--gold);font-style:italic">Precision</em> &amp; Passion</h2>
+      <p class="sc-body rv d2">Every thread, every stitch, every detail is meticulously considered. Our garments are engineered to move with you, crafted from fabrics that breathe and materials that endure.</p>
+      <a href="#collections" class="btn-gold rv d3">View Full Collection</a>
+      <div class="stats-row rv d4">
+        <div><span class="s-num" data-target="500">0</span><span class="s-lbl">Designs</span></div>
+        <div><span class="s-num" data-target="10000" data-suffix="K+">0</span><span class="s-lbl">Happy Clients</span></div>
+        <div><span class="s-num" data-target="8">0</span><span class="s-lbl">Years of Craft</span></div>
       </div>
     </div>
   </section>
 
-  <!-- ─── STORY ────────────────────────────────────────────── -->
-  <section id="story" class="section">
+  <!-- orbit carousel -->
+  <section id="orbit" class="sec">
+    <div class="orbit-head">
+      <span class="eyebrow rv">360° View</span>
+      <h2 class="sec-title rv d1">Experience Every <em>Angle</em></h2>
+    </div>
+    <div class="orbit-wrapper">
+      <div class="orbit-glow"></div>
+      <div class="orbit-stage" id="orbit-stage">
+
+        <div class="orbit-item">
+          <div class="orbit-face cw" style="background:#0e1825">
+            <span class="oi-ico">🧥</span>
+            <span class="oi-cat">Winter</span>
+            <p class="oi-name">Leather Jacket</p>
+            <p class="oi-price">Rs. 8,000</p>
+          </div>
+        </div>
+
+        <div class="orbit-item">
+          <div class="orbit-face cw" style="background:#0e1825">
+            <span class="oi-ico">🧣</span>
+            <span class="oi-cat">Winter</span>
+            <p class="oi-name">Fleece Hoodie</p>
+            <p class="oi-price">Rs. 3,500</p>
+          </div>
+        </div>
+
+        <div class="orbit-item">
+          <div class="orbit-face cw" style="background:#0e1825">
+            <span class="oi-ico">👔</span>
+            <span class="oi-cat">Winter</span>
+            <p class="oi-name">Flannel Shirt</p>
+            <p class="oi-price">Rs. 2,500</p>
+          </div>
+        </div>
+
+        <div class="orbit-item">
+          <div class="orbit-face cs" style="background:#1a1000">
+            <span class="oi-ico">👕</span>
+            <span class="oi-cat">Summer</span>
+            <p class="oi-name">Cotton T-Shirt</p>
+            <p class="oi-price">Rs. 1,500</p>
+          </div>
+        </div>
+
+        <div class="orbit-item">
+          <div class="orbit-face cs" style="background:#1a1000">
+            <span class="oi-ico">👗</span>
+            <span class="oi-cat">Summer</span>
+            <p class="oi-name">Linen Shirt</p>
+            <p class="oi-price">Rs. 2,800</p>
+          </div>
+        </div>
+
+        <div class="orbit-item">
+          <div class="orbit-face cs" style="background:#1a1000">
+            <span class="oi-ico">👖</span>
+            <span class="oi-cat">Summer</span>
+            <p class="oi-name">Chinos</p>
+            <p class="oi-price">Rs. 3,000</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- story -->
+  <section id="story" class="sec">
     <div class="story-grid">
-      <div class="story-visual reveal">
-        <div class="sv-frame1"></div>
-        <div class="sv-frame2"></div>
+      <div class="sv rv">
+        <div class="sv-f1"></div>
+        <div class="sv-f2"></div>
         <div class="sv-face">✦</div>
       </div>
-      <div class="story-text">
-        <span class="eyebrow reveal">Our Heritage</span>
-        <h2 class="sec-title reveal d1">Fashion Born<br>from <em>Light</em></h2>
-        <blockquote class="story-quote reveal d2">
-          "NOOR means light — and we believe fashion should illuminate the soul, not just clothe the body."
-        </blockquote>
-        <p class="story-body-p reveal d3">
-          Founded in the heart of the subcontinent, NOOR draws inspiration from centuries-old textile traditions and reimagines them for the modern wardrobe. We believe that clothing is not just fabric — it is identity, confidence, and self-expression.
-        </p>
-        <p class="story-body-p reveal d4">
-          Each collection is thoughtfully designed to serve every occasion — from intimate gatherings to grand celebrations, from morning walks to boardroom meetings.
-        </p>
-        <a href="#stylist-cta" class="btn-gold reveal d5">Meet Your Stylist</a>
+      <div>
+        <span class="eyebrow rv">Our Heritage</span>
+        <h2 class="sec-title rv d1">Fashion Born<br>from <em>Light</em></h2>
+        <blockquote class="sq rv d2">"NOOR means light — and we believe fashion should illuminate the soul, not just clothe the body."</blockquote>
+        <p class="sb rv d3">Founded in the heart of the subcontinent, NOOR draws inspiration from centuries-old textile traditions and reimagines them for the modern wardrobe. We believe that clothing is not just fabric — it is identity, confidence, and self-expression.</p>
+        <p class="sb rv d4">Each collection is thoughtfully designed to serve every occasion — from intimate gatherings to grand celebrations, from morning walks to boardroom meetings.</p>
+        <a href="#cta-sec" class="btn-gold rv d5">Meet Your Stylist</a>
       </div>
     </div>
   </section>
 
-  <!-- ─── FEATURES ─────────────────────────────────────────── -->
-  <section id="features" class="section">
-    <div class="features-head">
-      <span class="eyebrow reveal">Why NOOR</span>
-      <h2 class="sec-title reveal d1">The NOOR <em>Difference</em></h2>
+  <!-- features -->
+  <section id="features" class="sec">
+    <div class="feat-head">
+      <span class="eyebrow rv">Why NOOR</span>
+      <h2 class="sec-title rv d1">The NOOR <em>Difference</em></h2>
     </div>
-    <div class="features-grid">
-      <div class="f-card reveal d1">
-        <span class="f-icon">✦</span>
-        <h3 class="f-title">Premium Fabrics</h3>
-        <p class="f-desc">We source only the finest materials — pure cotton, premium wool, genuine leather — so every garment feels as luxurious as it looks.</p>
+    <div class="feat-grid">
+      <div class="fc rv d1">
+        <span class="fc-bg">✦</span>
+        <span class="fc-ico">✦</span>
+        <h3 class="fc-title">Premium Fabrics</h3>
+        <p class="fc-desc">We source only the finest materials — pure cotton, premium wool, genuine leather — so every garment feels as luxurious as it looks.</p>
       </div>
-      <div class="f-card reveal d2">
-        <span class="f-icon">◈</span>
-        <h3 class="f-title">Artisan Craft</h3>
-        <p class="f-desc">Each piece passes through the hands of skilled artisans who take pride in every stitch. Perfection isn't our standard — it's our baseline.</p>
+      <div class="fc rv d2">
+        <span class="fc-bg">◈</span>
+        <span class="fc-ico">◈</span>
+        <h3 class="fc-title">Artisan Craft</h3>
+        <p class="fc-desc">Each piece passes through the hands of skilled artisans who take pride in every stitch. Perfection isn't our standard — it's our baseline.</p>
       </div>
-      <div class="f-card reveal d3">
-        <span class="f-icon">⬡</span>
-        <h3 class="f-title">Style Intelligence</h3>
-        <p class="f-desc">Our AI-powered virtual stylist understands your body, occasion, budget, and taste to curate outfits that feel uniquely yours.</p>
+      <div class="fc rv d3">
+        <span class="fc-bg">⬡</span>
+        <span class="fc-ico">⬡</span>
+        <h3 class="fc-title">Style Intelligence</h3>
+        <p class="fc-desc">Our AI-powered virtual stylist understands your body, occasion, budget, and taste to curate outfits that feel uniquely yours.</p>
       </div>
     </div>
   </section>
 
-  <!-- ─── STYLIST CTA ───────────────────────────────────────── -->
-  <section id="stylist-cta" class="section">
-    <p class="eyebrow reveal">AI-Powered Styling</p>
-    <h2 class="cta-title reveal d1">Ready to Find<br>Your <em style="color:var(--gold);font-style:italic;">Signature Look?</em></h2>
-    <p class="cta-body reveal d2">
-      Tell us your occasion, season, and budget. Our Virtual Stylist will curate a perfect ensemble from our exclusive collection — personalized just for you.
-    </p>
-    <div class="cta-btns reveal d3">
+  <!-- stylist CTA -->
+  <section id="cta-sec" class="sec">
+    <p class="eyebrow rv">AI-Powered Styling</p>
+    <h2 class="cta-title rv d1">Ready to Find<br>Your <em style="color:var(--gold);font-style:italic">Signature Look?</em></h2>
+    <p class="cta-body rv d2">Tell us your occasion, season, and budget. Our Virtual Stylist will curate a perfect ensemble from our exclusive collection — personalized just for you.</p>
+    <div class="cta-btns rv d3">
       <a href="http://localhost:8501" class="btn-gold">Launch Virtual Stylist</a>
       <a href="#collections"         class="btn-ghost">Browse Collections</a>
     </div>
   </section>
 
-  <!-- ─── TESTIMONIALS ─────────────────────────────────────── -->
-  <section id="testimonials" class="section">
-    <div class="t-head">
-      <span class="eyebrow reveal">Client Stories</span>
-      <h2 class="sec-title reveal d1">What Our <em>Clients</em> Say</h2>
+  <!-- testimonials -->
+  <section id="testimonials" class="sec">
+    <div class="test-head">
+      <span class="eyebrow rv">Client Stories</span>
+      <h2 class="sec-title rv d1">What Our <em>Clients</em> Say</h2>
     </div>
-    <div class="t-grid">
-
-      <div class="t-card reveal d1">
-        <div class="t-stars">★★★★★</div>
-        <p class="t-text">"The Leather Jacket I ordered is absolutely stunning. The quality is unmatched and the virtual stylist helped me pick the perfect outfit for my wedding."</p>
-        <div class="t-author">
-          <div class="t-avatar">A</div>
-          <div><p class="t-name">Ahmed R.</p><p class="t-loc">Lahore, Pakistan</p></div>
+    <div class="test-grid">
+      <div class="tc rv d1">
+        <div class="tc-stars">★★★★★</div>
+        <p class="tc-text">"The Leather Jacket is absolutely stunning. The quality is unmatched and the virtual stylist helped me pick the perfect outfit for my wedding."</p>
+        <div class="tc-auth">
+          <div class="tc-av">A</div>
+          <div><p class="tc-name">Ahmed R.</p><p class="tc-loc">Lahore, Pakistan</p></div>
         </div>
       </div>
-
-      <div class="t-card reveal d2">
-        <div class="t-stars">★★★★★</div>
-        <p class="t-text">"I was skeptical about AI styling, but NOOR's virtual stylist nailed it. Got the perfect summer look for a party — within my budget!"</p>
-        <div class="t-author">
-          <div class="t-avatar">S</div>
-          <div><p class="t-name">Sara M.</p><p class="t-loc">Karachi, Pakistan</p></div>
+      <div class="tc rv d2">
+        <div class="tc-stars">★★★★★</div>
+        <p class="tc-text">"NOOR's virtual stylist nailed it. Got the perfect summer look for a party — completely within my budget, and the fabric quality is exceptional."</p>
+        <div class="tc-auth">
+          <div class="tc-av">S</div>
+          <div><p class="tc-name">Sara M.</p><p class="tc-loc">Karachi, Pakistan</p></div>
         </div>
       </div>
-
-      <div class="t-card reveal d3">
-        <div class="t-stars">★★★★★</div>
-        <p class="t-text">"The Fleece Hoodie is incredibly soft and warm. NOOR's attention to detail in every garment is evident the moment you put it on."</p>
-        <div class="t-author">
-          <div class="t-avatar">Z</div>
-          <div><p class="t-name">Zara K.</p><p class="t-loc">Islamabad, Pakistan</p></div>
+      <div class="tc rv d3">
+        <div class="tc-stars">★★★★★</div>
+        <p class="tc-text">"The Fleece Hoodie is incredibly soft and warm. NOOR's attention to detail in every garment is evident the moment you put it on."</p>
+        <div class="tc-auth">
+          <div class="tc-av">Z</div>
+          <div><p class="tc-name">Zara K.</p><p class="tc-loc">Islamabad, Pakistan</p></div>
         </div>
       </div>
-
     </div>
   </section>
 
-  <!-- ─── FOOTER ───────────────────────────────────────────── -->
+  <!-- footer -->
   <footer>
-    <div class="footer-top">
-      <div class="footer-brand">
-        <span class="footer-brand-name">NOOR</span>
+    <div class="ft-grid">
+      <div class="ft-brand">
+        <span class="ft-bname">NOOR</span>
         <p>Illuminate Your Style. Premium clothing crafted for the discerning individual. Where tradition meets modernity in every thread.</p>
       </div>
-      <div class="f-col">
+      <div class="ft-col">
         <h4>Collections</h4>
         <ul>
           <li><a href="#collections">Winter 2025</a></li>
@@ -839,16 +748,16 @@
           <li><a href="#collections">Formal Wear</a></li>
         </ul>
       </div>
-      <div class="f-col">
+      <div class="ft-col">
         <h4>Services</h4>
         <ul>
-          <li><a href="#stylist-cta">Virtual Stylist</a></li>
+          <li><a href="#cta-sec">Virtual Stylist</a></li>
           <li><a href="#">Custom Orders</a></li>
           <li><a href="#">Gift Cards</a></li>
           <li><a href="#">Style Guide</a></li>
         </ul>
       </div>
-      <div class="f-col">
+      <div class="ft-col">
         <h4>Support</h4>
         <ul>
           <li><a href="#">Contact Us</a></li>
@@ -858,336 +767,331 @@
         </ul>
       </div>
     </div>
-    <div class="footer-bottom">
+    <div class="ft-bot">
       <p>© 2025 NOOR. All rights reserved.</p>
-      <div class="fb-links">
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">Cookie Policy</a>
+      <div class="ft-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Cookies</a>
       </div>
     </div>
   </footer>
 
-  <!-- ─── SCRIPTS ──────────────────────────────────────────── -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script>
-  /* ── LOADER HIDE ──────────────────────────────────────── */
-  window.addEventListener('load', () => {
-    setTimeout(() => document.getElementById('loader').classList.add('hidden'), 2900);
+  /* ── LOADER ─────────────────────────────────────────────── */
+  window.addEventListener('load', () => setTimeout(() => document.getElementById('loader').classList.add('off'), 3000));
+
+  /* ── SCROLL PROGRESS ────────────────────────────────────── */
+  const pbar = document.getElementById('progress-bar');
+  window.addEventListener('scroll', () => {
+    pbar.style.width = (scrollY / (document.body.scrollHeight - innerHeight) * 100) + '%';
   });
 
-  /* ── CUSTOM CURSOR ────────────────────────────────────── */
-  const cursorDot  = document.getElementById('cursor');
-  const cursorRing = document.getElementById('cursor-ring');
-  let mx = 0, my = 0, rx = 0, ry = 0;
+  /* ── CURSOR + TRAIL ─────────────────────────────────────── */
+  const dot  = document.getElementById('cur-dot');
+  const ring = document.getElementById('cur-ring');
+  const tc   = document.getElementById('trail-canvas');
+  const tctx = tc.getContext('2d');
+  tc.width = innerWidth; tc.height = innerHeight;
+
+  let mx=0, my=0, rx=0, ry=0;
+  const trail = [];
 
   document.addEventListener('mousemove', e => {
     mx = e.clientX; my = e.clientY;
-    cursorDot.style.left = mx + 'px';
-    cursorDot.style.top  = my + 'px';
+    dot.style.left = mx+'px'; dot.style.top = my+'px';
+    trail.push({ x:mx, y:my, l:1 });
+    if (trail.length > 60) trail.shift();
   });
 
   (function trackRing() {
-    rx += (mx - rx) * 0.12;
-    ry += (my - ry) * 0.12;
-    cursorRing.style.left = rx + 'px';
-    cursorRing.style.top  = ry + 'px';
+    rx += (mx-rx)*0.12; ry += (my-ry)*0.12;
+    ring.style.left = rx+'px'; ring.style.top = ry+'px';
     requestAnimationFrame(trackRing);
   })();
 
-  document.querySelectorAll('a, button').forEach(el => {
-    el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
-    el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+  (function drawTrail() {
+    tctx.clearRect(0,0,tc.width,tc.height);
+    for (let i = trail.length-1; i >= 0; i--) {
+      const p = trail[i];
+      p.l -= 0.045;
+      if (p.l <= 0) { trail.splice(i,1); continue; }
+      tctx.beginPath();
+      tctx.arc(p.x, p.y, p.l*3.5, 0, Math.PI*2);
+      tctx.fillStyle = `rgba(201,169,110,${p.l*0.35})`;
+      tctx.fill();
+    }
+    requestAnimationFrame(drawTrail);
+  })();
+
+  document.querySelectorAll('a,button').forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('hov'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
   });
 
-  /* ── NAVBAR ON SCROLL ─────────────────────────────────── */
+  window.addEventListener('resize', () => { tc.width=innerWidth; tc.height=innerHeight; });
+
+  /* ── NAVBAR ─────────────────────────────────────────────── */
   window.addEventListener('scroll', () => {
-    document.getElementById('navbar').classList.toggle('solid', window.scrollY > 80);
+    document.getElementById('nav').classList.toggle('solid', scrollY > 80);
   });
 
-  /* ── 3D CARD TILT ─────────────────────────────────────── */
-  document.querySelectorAll('.p-card').forEach(card => {
+  /* ── CARD TILT ──────────────────────────────────────────── */
+  document.querySelectorAll('.pc').forEach(card => {
     card.addEventListener('mousemove', e => {
-      const r   = card.getBoundingClientRect();
-      const cx  = r.width  / 2;
-      const cy  = r.height / 2;
-      const rx2 = -((e.clientY - r.top  - cy) / cy) * 10;
-      const ry2 =  ((e.clientX - r.left - cx) / cx) * 10;
+      const r = card.getBoundingClientRect();
+      const rx2 = -((e.clientY - r.top  - r.height/2) / r.height) * 12;
+      const ry2 =  ((e.clientX - r.left - r.width/2)  / r.width)  * 12;
       card.style.transform = `perspective(900px) rotateX(${rx2}deg) rotateY(${ry2}deg) scale(1.02)`;
     });
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = 'perspective(900px) rotateX(0) rotateY(0) scale(1)';
+    card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+  });
+
+  /* ── SCROLL REVEAL ──────────────────────────────────────── */
+  const rvObs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting) e.target.classList.add('on'); }), { threshold: 0.12 });
+  document.querySelectorAll('.rv').forEach(el => rvObs.observe(el));
+
+  /* ── ANIMATED COUNTERS ──────────────────────────────────── */
+  const counterObs = new IntersectionObserver(es => {
+    es.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el  = e.target;
+      const max = +el.dataset.target;
+      const sfx = el.dataset.suffix || '+';
+      const dur = 2200;
+      const start = performance.now();
+      (function tick(now) {
+        const prog = Math.min((now-start)/dur, 1);
+        const ease = 1 - Math.pow(1-prog, 3);
+        const val = Math.floor(ease * max);
+        el.textContent = (max >= 10000 ? (val/1000).toFixed(0)+'K' : val) + sfx;
+        if (prog < 1) requestAnimationFrame(tick);
+      })(start);
+      counterObs.unobserve(el);
     });
-  });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.s-num[data-target]').forEach(el => counterObs.observe(el));
 
-  /* ── SCROLL REVEAL ────────────────────────────────────── */
-  const revealObs = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('on'); });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
-
-  /* ── SMOOTH PARALLAX on story frames ─────────────────── */
+  /* ── PARALLAX STORY FRAMES ──────────────────────────────── */
   window.addEventListener('scroll', () => {
-    const sy = window.scrollY;
-    const f1 = document.querySelector('.sv-frame1');
-    const f2 = document.querySelector('.sv-frame2');
-    if (f1) f1.style.transform = `rotate(-5deg) translateY(${sy * 0.02}px)`;
-    if (f2) f2.style.transform = `rotate(3deg)  translateY(${sy * 0.03}px)`;
+    const f1=document.querySelector('.sv-f1'), f2=document.querySelector('.sv-f2');
+    if(f1){ f1.style.transform=`rotate(-5deg) translateY(${scrollY*0.018}px)`; }
+    if(f2){ f2.style.transform=`rotate(3deg)  translateY(${scrollY*0.028}px)`; }
   });
 
-  /* ═══════════════════════════════════════════════════════
+  /* ══════════════════════════════════════════════════════════
      HERO — THREE.JS SCENE
-  ═══════════════════════════════════════════════════════ */
+  ══════════════════════════════════════════════════════════ */
   const HC  = document.getElementById('hero-canvas');
   const HS  = new THREE.Scene();
-  const HCam = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 1000);
-  HCam.position.set(0, 0, 6.5);
+  const HCam = new THREE.PerspectiveCamera(58, innerWidth/innerHeight, 0.1, 1000);
+  HCam.position.set(0,0,7);
 
-  const HR = new THREE.WebGLRenderer({ canvas: HC, alpha: true, antialias: true });
+  const HR = new THREE.WebGLRenderer({ canvas:HC, alpha:true, antialias:true });
   HR.setSize(innerWidth, innerHeight);
-  HR.setPixelRatio(Math.min(devicePixelRatio, 2));
+  HR.setPixelRatio(Math.min(devicePixelRatio,2));
 
-  /* — particles — */
-  const PC = 2800;
-  const pPos  = new Float32Array(PC * 3);
-  const pCol  = new Float32Array(PC * 3);
-  const pOrig = new Float32Array(PC * 3);
-
-  for (let i = 0; i < PC; i++) {
-    const x = (Math.random() - 0.5) * 28;
-    const y = (Math.random() - 0.5) * 16;
-    const z = (Math.random() - 0.5) * 14;
-    pPos [i*3]=pOrig[i*3]=x;
-    pPos [i*3+1]=pOrig[i*3+1]=y;
-    pPos [i*3+2]=pOrig[i*3+2]=z;
-    if (Math.random() > 0.5) {
-      pCol[i*3]=0.788; pCol[i*3+1]=0.663; pCol[i*3+2]=0.431; // gold
-    } else {
-      pCol[i*3]=0.941; pCol[i*3+1]=0.922; pCol[i*3+2]=0.878; // cream
-    }
+  /* particles */
+  const PC=3000, pP=new Float32Array(PC*3), pC=new Float32Array(PC*3), pO=new Float32Array(PC*3);
+  for(let i=0;i<PC;i++){
+    const x=(Math.random()-0.5)*30, y=(Math.random()-0.5)*18, z=(Math.random()-0.5)*15;
+    pP[i*3]=pO[i*3]=x; pP[i*3+1]=pO[i*3+1]=y; pP[i*3+2]=pO[i*3+2]=z;
+    if(Math.random()>0.45){ pC[i*3]=0.788;pC[i*3+1]=0.663;pC[i*3+2]=0.431; }
+    else                  { pC[i*3]=0.941;pC[i*3+1]=0.922;pC[i*3+2]=0.878; }
   }
-
-  const PGeo = new THREE.BufferGeometry();
-  PGeo.setAttribute('position', new THREE.BufferAttribute(pPos,  3));
-  PGeo.setAttribute('color',    new THREE.BufferAttribute(pCol,  3));
-
-  const PMat = new THREE.PointsMaterial({ size: 0.026, vertexColors: true, transparent: true, opacity: 0.72, sizeAttenuation: true });
-  const Pts  = new THREE.Points(PGeo, PMat);
+  const PGeo=new THREE.BufferGeometry();
+  PGeo.setAttribute('position',new THREE.BufferAttribute(pP,3));
+  PGeo.setAttribute('color',   new THREE.BufferAttribute(pC,3));
+  const Pts=new THREE.Points(PGeo,new THREE.PointsMaterial({size:0.024,vertexColors:true,transparent:true,opacity:0.68,sizeAttenuation:true}));
   HS.add(Pts);
 
-  /* — main object: torus knot — */
-  const TKMesh = new THREE.Mesh(
-    new THREE.TorusKnotGeometry(1.65, 0.46, 140, 32),
-    new THREE.MeshStandardMaterial({ color: 0xc9a96e, metalness: 0.92, roughness: 0.12, emissive: 0x2a1800, emissiveIntensity: 0.18 })
+  /* central torus knot */
+  const TK=new THREE.Mesh(
+    new THREE.TorusKnotGeometry(1.7,0.47,144,34),
+    new THREE.MeshStandardMaterial({color:0xc9a96e,metalness:0.93,roughness:0.11,emissive:0x2a1500,emissiveIntensity:0.22})
   );
-  HS.add(TKMesh);
-
-  /* — wireframe overlay — */
-  const WFMesh = new THREE.Mesh(
-    new THREE.TorusKnotGeometry(1.66, 0.47, 64, 16),
-    new THREE.MeshBasicMaterial({ color: 0xf0ebe0, wireframe: true, transparent: true, opacity: 0.055 })
+  HS.add(TK);
+  const TKW=new THREE.Mesh(
+    new THREE.TorusKnotGeometry(1.71,0.48,64,16),
+    new THREE.MeshBasicMaterial({color:0xf0ebe0,wireframe:true,transparent:true,opacity:0.05})
   );
-  HS.add(WFMesh);
+  HS.add(TKW);
 
-  /* — decorative rings — */
-  function makeRing(r, tube, color, opacity, rx, ry) {
-    const m = new THREE.Mesh(
-      new THREE.TorusGeometry(r, tube, 8, 100),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity })
-    );
-    m.rotation.x = rx; m.rotation.y = ry;
-    return m;
-  }
-  const ring1 = makeRing(3.2,  0.018, 0xc9a96e, 0.28, Math.PI/3,  0);
-  const ring2 = makeRing(3.8,  0.010, 0xf0ebe0, 0.14, Math.PI/5,  Math.PI/4);
-  const ring3 = makeRing(2.5,  0.012, 0xc9a96e, 0.18, -Math.PI/6, Math.PI/3);
-  HS.add(ring1); HS.add(ring2); HS.add(ring3);
-
-  /* — lighting — */
-  HS.add(new THREE.AmbientLight(0xffffff, 0.25));
-  const pl1 = new THREE.PointLight(0xc9a96e, 5, 30); pl1.position.set( 5,  5, 5); HS.add(pl1);
-  const pl2 = new THREE.PointLight(0xf0ebe0, 2, 30); pl2.position.set(-5, -3, 3); HS.add(pl2);
-  const pl3 = new THREE.PointLight(0xc9a96e, 2, 20); pl3.position.set( 0,  0, 9); HS.add(pl3);
-
-  /* — mouse — */
-  let hMouseX = 0, hMouseY = 0, hTargX = 0, hTargY = 0;
-  document.addEventListener('mousemove', e => {
-    hMouseX = (e.clientX / innerWidth  - 0.5) * 2;
-    hMouseY = (e.clientY / innerHeight - 0.5) * 2;
+  /* orbiting gems */
+  const GEM_MAT  = new THREE.MeshStandardMaterial({color:0xc9a96e,metalness:0.95,roughness:0.08,emissive:0x301000,emissiveIntensity:0.3});
+  const GEM_WF   = new THREE.MeshBasicMaterial({color:0xf0ebe0,wireframe:true,transparent:true,opacity:0.25});
+  const GEM_GEO  = new THREE.OctahedronGeometry(0.28,0);
+  const gems = [0, Math.PI*2/3, Math.PI*4/3].map(offset => {
+    const g = new THREE.Mesh(GEM_GEO, GEM_MAT);
+    const w = new THREE.Mesh(GEM_GEO, GEM_WF);
+    HS.add(g); HS.add(w);
+    return { g, w, offset };
   });
 
-  const HClock = new THREE.Clock();
+  /* decorative rings */
+  [[3.3,0.018,0xc9a96e,0.28,Math.PI/3,0],
+   [4.0,0.010,0xf0ebe0,0.13,Math.PI/5,Math.PI/4],
+   [2.6,0.013,0xc9a96e,0.18,-Math.PI/6,Math.PI/3]].forEach(([r,t,c,o,rx2,ry2])=>{
+    const m=new THREE.Mesh(new THREE.TorusGeometry(r,t,8,100),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o}));
+    m.rotation.x=rx2; m.rotation.y=ry2; HS.add(m);
+    gems.push({ ring: m, rx:rx2, ry:ry2 }); // reuse array for ring refs
+  });
+  const [g0,g1,g2,...rings] = gems;
 
-  function animHero() {
+  /* lighting */
+  HS.add(new THREE.AmbientLight(0xffffff,0.2));
+  const pl1=new THREE.PointLight(0xc9a96e,5,35); pl1.position.set(5,5,5);   HS.add(pl1);
+  const pl2=new THREE.PointLight(0xf0ebe0,2,30); pl2.position.set(-5,-3,4); HS.add(pl2);
+  const pl3=new THREE.PointLight(0xffc060,2,22); pl3.position.set(0,0,10);  HS.add(pl3);
+
+  /* mouse parallax */
+  let hMX=0,hMY=0,hTX=0,hTY=0;
+  document.addEventListener('mousemove',e=>{ hMX=(e.clientX/innerWidth-0.5)*2; hMY=(e.clientY/innerHeight-0.5)*2; });
+
+  const HCk=new THREE.Clock();
+  function animHero(){
     requestAnimationFrame(animHero);
-    const t = HClock.getElapsedTime();
+    const t=HCk.getElapsedTime();
 
-    TKMesh.rotation.x = t * 0.14;
-    TKMesh.rotation.y = t * 0.21;
-    WFMesh.rotation.x = t * 0.14;
-    WFMesh.rotation.y = t * 0.21;
+    TK.rotation.x =t*0.14; TK.rotation.y =t*0.22;
+    TKW.rotation.x=t*0.14; TKW.rotation.y=t*0.22;
+    const s=1+Math.sin(t*0.9)*0.018; TK.scale.set(s,s,s);
 
-    const s = 1 + Math.sin(t * 0.9) * 0.018;
-    TKMesh.scale.set(s, s, s);
+    /* orbit gems */
+    [g0,g1,g2].forEach(({g,w,offset})=>{
+      const a=t*0.7+offset;
+      const x=Math.cos(a)*3.0, z=Math.sin(a)*1.8, y=Math.sin(a*0.6)*0.8;
+      g.position.set(x,y,z); w.position.copy(g.position);
+      g.rotation.x=t*1.1+offset; g.rotation.y=t*0.8+offset;
+      w.rotation.copy(g.rotation);
+    });
 
-    ring1.rotation.z =  t * 0.07;
-    ring2.rotation.z = -t * 0.05;
-    ring3.rotation.z =  t * 0.09;
+    /* rings */
+    rings.filter(r=>r.ring).forEach((r,i)=>{ r.ring.rotation.z=t*(0.06+i*0.02)*(i%2?-1:1); });
 
     /* wave particles */
-    for (let i = 0; i < PC; i++) {
-      pPos[i*3+1] = pOrig[i*3+1]
-        + Math.sin(pOrig[i*3]   * 0.3 + t * 0.5) * 0.38
-        + Math.cos(pOrig[i*3+2] * 0.25 + t * 0.4) * 0.22;
+    for(let i=0;i<PC;i++){
+      pP[i*3+1]=pO[i*3+1]+Math.sin(pO[i*3]*0.28+t*0.5)*0.42+Math.cos(pO[i*3+2]*0.22+t*0.38)*0.26;
     }
-    PGeo.attributes.position.needsUpdate = true;
-    Pts.rotation.y = t * 0.008;
+    PGeo.attributes.position.needsUpdate=true;
+    Pts.rotation.y=t*0.007;
 
-    /* parallax camera */
-    hTargX += (hMouseX * 0.75 - hTargX) * 0.04;
-    hTargY += (-hMouseY * 0.5 - hTargY) * 0.04;
-    HCam.position.x = hTargX;
-    HCam.position.y = hTargY;
-    HCam.lookAt(0, 0, 0);
+    hTX+=(hMX*0.8-hTX)*0.04; hTY+=(-hMY*0.5-hTY)*0.04;
+    HCam.position.x=hTX; HCam.position.y=hTY; HCam.lookAt(0,0,0);
 
-    HR.render(HS, HCam);
+    HR.render(HS,HCam);
   }
   animHero();
 
-  /* ═══════════════════════════════════════════════════════
-     SHOWCASE — THREE.JS SCENE (cloth wave + sphere)
-  ═══════════════════════════════════════════════════════ */
-  const SC_EL = document.getElementById('showcase-canvas');
-  let SCam, SR, SClock, fabricGeo, fabricWfGeo, sphereMesh, sphereWfMesh;
-  let showcaseActive = false;
+  /* ══════════════════════════════════════════════════════════
+     SHOWCASE — THREE.JS SCENE (cloth wave + sphere + diamonds)
+  ══════════════════════════════════════════════════════════ */
+  const SC_EL=document.getElementById('sc-canvas');
+  let SC,SCR,SCK; let scVisible=false;
 
-  if (SC_EL) {
-    const SS = new THREE.Scene();
-    SCam = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 1000);
-    SCam.position.set(-2, 2.5, 9);
-    SCam.lookAt(2, 0, 0);
+  if(SC_EL){
+    const SS=new THREE.Scene();
+    SC=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,1000);
+    SC.position.set(-2,2.5,9); SC.lookAt(2,0,0);
 
-    SR = new THREE.WebGLRenderer({ canvas: SC_EL, alpha: true, antialias: true });
-    SR.setSize(innerWidth, innerHeight);
-    SR.setPixelRatio(Math.min(devicePixelRatio, 2));
+    SCR=new THREE.WebGLRenderer({canvas:SC_EL,alpha:true,antialias:true});
+    SCR.setSize(innerWidth,innerHeight);
+    SCR.setPixelRatio(Math.min(devicePixelRatio,2));
 
-    /* — cloth plane — */
-    const SEG = 64;
-    fabricGeo   = new THREE.PlaneGeometry(14, 11, SEG, SEG);
-    fabricWfGeo = new THREE.PlaneGeometry(14, 11, SEG, SEG);
+    /* cloth */
+    const SEG=70;
+    const fGeo=new THREE.PlaneGeometry(14,11,SEG,SEG);
+    const wGeo=new THREE.PlaneGeometry(14,11,SEG,SEG);
+    const fM=new THREE.Mesh(fGeo,new THREE.MeshStandardMaterial({color:0xc9a96e,metalness:0.12,roughness:0.65,side:THREE.DoubleSide,transparent:true,opacity:0.12}));
+    const wM=new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xc9a96e,wireframe:true,transparent:true,opacity:0.09}));
+    fM.rotation.x=wM.rotation.x=-Math.PI/5;
+    SS.add(fM); SS.add(wM);
 
-    const fabricMat = new THREE.MeshStandardMaterial({
-      color: 0xc9a96e, metalness: 0.12, roughness: 0.65,
-      side: THREE.DoubleSide, transparent: true, opacity: 0.13
-    });
-    const fabricWfMat = new THREE.MeshBasicMaterial({
-      color: 0xc9a96e, wireframe: true, transparent: true, opacity: 0.10
-    });
+    /* sphere */
+    const sph=new THREE.Mesh(new THREE.SphereGeometry(2.7,36,36),new THREE.MeshStandardMaterial({color:0xc9a96e,metalness:0.78,roughness:0.22,transparent:true,opacity:0.13}));
+    const sphW=new THREE.Mesh(new THREE.SphereGeometry(2.72,20,20),new THREE.MeshBasicMaterial({color:0xc9a96e,wireframe:true,transparent:true,opacity:0.15}));
+    sph.position.set(6,0,-3); sphW.position.copy(sph.position);
+    SS.add(sph); SS.add(sphW);
 
-    const fabricMesh   = new THREE.Mesh(fabricGeo,   fabricMat);
-    const fabricWfMesh = new THREE.Mesh(fabricWfGeo, fabricWfMat);
-    fabricMesh.rotation.x   = -Math.PI / 5;
-    fabricWfMesh.rotation.x = -Math.PI / 5;
-    SS.add(fabricMesh);
-    SS.add(fabricWfMesh);
-
-    /* — metallic sphere (right side) — */
-    sphereMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(2.6, 36, 36),
-      new THREE.MeshStandardMaterial({ color: 0xc9a96e, metalness: 0.75, roughness: 0.25, transparent: true, opacity: 0.14 })
-    );
-    sphereMesh.position.set(6, 0, -3);
-    SS.add(sphereMesh);
-
-    sphereWfMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(2.61, 20, 20),
-      new THREE.MeshBasicMaterial({ color: 0xc9a96e, wireframe: true, transparent: true, opacity: 0.16 })
-    );
-    sphereWfMesh.position.copy(sphereMesh.position);
-    SS.add(sphereWfMesh);
-
-    /* — floating diamonds — */
-    const dGeo = new THREE.OctahedronGeometry(0.3, 0);
-    const dMat = new THREE.MeshStandardMaterial({ color: 0xc9a96e, metalness: 0.9, roughness: 0.1, transparent: true, opacity: 0.6 });
-    const dWfMat = new THREE.MeshBasicMaterial({ color: 0xf0ebe0, wireframe: true, transparent: true, opacity: 0.25 });
-    const diamondData = [
-      [3, 2, 1], [-2, 3, 0], [5, -2, -1], [1, -3, 2], [7, 2, -2], [-1, 1, 3]
-    ];
-    const diamonds = diamondData.map(([x, y, z]) => {
-      const d = new THREE.Mesh(dGeo, dMat);
-      const w = new THREE.Mesh(dGeo, dWfMat);
-      d.position.set(x, y, z);
-      w.position.set(x, y, z);
+    /* floating diamonds */
+    const dMat=new THREE.MeshStandardMaterial({color:0xc9a96e,metalness:0.92,roughness:0.08,transparent:true,opacity:0.65});
+    const dWf =new THREE.MeshBasicMaterial({color:0xf0ebe0,wireframe:true,transparent:true,opacity:0.22});
+    const dGeo=new THREE.OctahedronGeometry(0.32,0);
+    const scDiamonds=[[3,2.5,1],[-1.5,3.2,0.5],[5.5,-2,-1],[1,-3,2.2],[7,1.8,-2.5],[-0.5,0.8,3]].map(([x,y,z])=>{
+      const d=new THREE.Mesh(dGeo,dMat), w=new THREE.Mesh(dGeo,dWf);
+      d.position.set(x,y,z); w.position.set(x,y,z);
       SS.add(d); SS.add(w);
-      return { d, w, ox: x, oy: y };
+      return {d,w,ox:x,oy:y};
     });
 
-    /* — lighting — */
-    SS.add(new THREE.AmbientLight(0xffffff, 0.4));
-    const sl1 = new THREE.PointLight(0xc9a96e, 4, 40); sl1.position.set( 5,  5, 5); SS.add(sl1);
-    const sl2 = new THREE.PointLight(0xf0ebe0, 2, 30); sl2.position.set(-4, -3, 4); SS.add(sl2);
+    SS.add(new THREE.AmbientLight(0xffffff,0.4));
+    const sl1=new THREE.PointLight(0xc9a96e,4,40); sl1.position.set(5,5,5);   SS.add(sl1);
+    const sl2=new THREE.PointLight(0xf0ebe0,2,30); sl2.position.set(-4,-3,4); SS.add(sl2);
 
-    SClock = new THREE.Clock();
+    SCK=new THREE.Clock();
 
-    /* — visibility gate — */
-    const showcaseObs = new IntersectionObserver(entries => {
-      showcaseActive = entries[0].isIntersecting;
-    }, { threshold: 0.1 });
-    showcaseObs.observe(SC_EL);
+    new IntersectionObserver(es=>{ scVisible=es[0].isIntersecting; },{threshold:0.05}).observe(SC_EL);
 
-    function animShowcase() {
-      requestAnimationFrame(animShowcase);
-      if (!showcaseActive) return;
-      const t = SClock.getElapsedTime();
-
-      /* cloth wave */
-      const fPos  = fabricGeo.attributes.position;
-      const wPos  = fabricWfGeo.attributes.position;
-      for (let i = 0; i < fPos.count; i++) {
-        const x = fPos.getX(i);
-        const y = fPos.getY(i);
-        const wave = Math.sin(x * 0.4 + t * 0.9) * 0.5
-                   + Math.cos(y * 0.35 + t * 0.7) * 0.35
-                   + Math.sin(x * 0.25 + y * 0.25 + t * 0.5) * 0.2;
-        fPos.setZ(i, wave);
-        wPos.setZ(i, wave);
+    function animSC(){
+      requestAnimationFrame(animSC);
+      if(!scVisible) return;
+      const t=SCK.getElapsedTime();
+      const fp=fGeo.attributes.position, wp=wGeo.attributes.position;
+      for(let i=0;i<fp.count;i++){
+        const x=fp.getX(i), y=fp.getY(i);
+        const z=Math.sin(x*0.38+t*0.85)*0.52+Math.cos(y*0.33+t*0.65)*0.38+Math.sin(x*0.22+y*0.22+t*0.48)*0.22;
+        fp.setZ(i,z); wp.setZ(i,z);
       }
-      fPos.needsUpdate = true;
-      wPos.needsUpdate = true;
-      fabricGeo.computeVertexNormals();
-
-      /* sphere */
-      sphereMesh.rotation.y   = t * 0.18;
-      sphereMesh.rotation.x   = t * 0.08;
-      sphereWfMesh.rotation.y = t * 0.18;
-      sphereWfMesh.rotation.x = t * 0.08;
-
-      /* floating diamonds */
-      diamonds.forEach(({ d, w, ox, oy }, idx) => {
-        const off = idx * 1.2;
-        d.rotation.x = t * 0.6 + off;
-        d.rotation.y = t * 0.8 + off;
-        d.position.y = oy + Math.sin(t * 0.6 + off) * 0.3;
-        w.rotation.copy(d.rotation);
-        w.position.copy(d.position);
+      fp.needsUpdate=wp.needsUpdate=true; fGeo.computeVertexNormals();
+      sph.rotation.y=t*0.17; sph.rotation.x=t*0.08;
+      sphW.rotation.copy(sph.rotation);
+      scDiamonds.forEach(({d,w,ox,oy},i)=>{
+        const off=i*1.15;
+        d.rotation.x=t*0.65+off; d.rotation.y=t*0.85+off;
+        d.position.y=oy+Math.sin(t*0.58+off)*0.32;
+        w.rotation.copy(d.rotation); w.position.copy(d.position);
       });
-
-      SR.render(SS, SCam);
+      SCR.render(SS,SC);
     }
-    animShowcase();
+    animSC();
   }
 
-  /* ── RESIZE ───────────────────────────────────────────── */
-  window.addEventListener('resize', () => {
-    HCam.aspect = innerWidth / innerHeight;
-    HCam.updateProjectionMatrix();
-    HR.setSize(innerWidth, innerHeight);
+  /* ══════════════════════════════════════════════════════════
+     ORBIT CAROUSEL (CSS 3D)
+  ══════════════════════════════════════════════════════════ */
+  const orbitStage = document.getElementById('orbit-stage');
+  if (orbitStage) {
+    const items = Array.from(orbitStage.querySelectorAll('.orbit-item'));
+    const N = items.length;
+    const R = 340; // orbit radius in px
+    let oA = 0, orbitPaused = false;
 
-    if (SCam && SR) {
-      SCam.aspect = innerWidth / innerHeight;
-      SCam.updateProjectionMatrix();
-      SR.setSize(innerWidth, innerHeight);
-    }
+    items.forEach(item => {
+      item.addEventListener('mouseenter', () => orbitPaused = true);
+      item.addEventListener('mouseleave', () => orbitPaused = false);
+    });
+
+    (function spinOrbit() {
+      if (!orbitPaused) oA += 0.22;
+      items.forEach((item, i) => {
+        const deg = (i * 360 / N) + oA;
+        const rad = deg * Math.PI / 180;
+        const cosA = Math.cos(rad);
+        const opacity = Math.max(0.15, 0.45 + cosA * 0.55);
+        const scale   = Math.max(0.68, 0.84 + cosA * 0.16);
+        item.style.opacity   = opacity;
+        item.style.zIndex    = Math.round(cosA * 10 + 10);
+        item.style.transform = `rotateY(${deg}deg) translateZ(${R}px) rotateY(${-deg}deg) scale(${scale})`;
+      });
+      requestAnimationFrame(spinOrbit);
+    })();
+  }
+
+  /* ── RESIZE ─────────────────────────────────────────────── */
+  window.addEventListener('resize', () => {
+    HCam.aspect=innerWidth/innerHeight; HCam.updateProjectionMatrix(); HR.setSize(innerWidth,innerHeight);
+    if(SC&&SCR){ SC.aspect=innerWidth/innerHeight; SC.updateProjectionMatrix(); SCR.setSize(innerWidth,innerHeight); }
   });
   </script>
 </body>
